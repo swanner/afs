@@ -6,7 +6,7 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
-ADR_DIR = Path("specification/adr")
+ADR_RELATIVE_DIR = Path("specification/adr")
 ADR_PATTERN = re.compile(r"^ADR-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$")
 HEADING_PATTERN = re.compile(r"^# ADR-(\d{4}):\s+.+$", re.MULTILINE)
 STATUS_PATTERN = re.compile(r"^- Status:\s*(.+?)\s*$", re.MULTILINE)
@@ -20,11 +20,11 @@ ALLOWED_STATUSES = {
     "Superseded",
 }
 
-REQUIRED_PATHS = (
+REQUIRED_RELATIVE_PATHS = (
     Path("README.md"),
     Path("LICENSE"),
     Path("pyproject.toml"),
-    ADR_DIR,
+    ADR_RELATIVE_DIR,
 )
 
 REQUIRED_SECTIONS = (
@@ -100,10 +100,23 @@ def add_error(errors: list[str], rule: str, message: str) -> None:
     errors.append(f"{rule}: {message}")
 
 
-def validate_adr(path: Path, errors: list[str], numbers: list[int]) -> None:
+def display_path(path: Path, root: Path) -> Path:
+    try:
+        return path.relative_to(root)
+    except ValueError:
+        return path
+
+
+def validate_adr(
+    path: Path,
+    root: Path,
+    errors: list[str],
+    numbers: list[int],
+) -> None:
+    shown_path = display_path(path, root)
     match = ADR_PATTERN.match(path.name)
     if not match:
-        add_error(errors, "AFS002", f"Invalid ADR filename: {path}")
+        add_error(errors, "AFS002", f"Invalid ADR filename: {shown_path}")
         return
 
     number = int(match.group(1))
@@ -112,22 +125,26 @@ def validate_adr(path: Path, errors: list[str], numbers: list[int]) -> None:
 
     heading_match = HEADING_PATTERN.search(content)
     if not heading_match or int(heading_match.group(1)) != number:
-        add_error(errors, "AFS004", f"Missing or inconsistent ADR heading: {path}")
+        add_error(
+            errors,
+            "AFS004",
+            f"Missing or inconsistent ADR heading: {shown_path}",
+        )
 
     status_match = STATUS_PATTERN.search(content)
     date_match = DATE_PATTERN.search(content)
 
     if not status_match:
-        add_error(errors, "AFS005", f"Missing Status metadata: {path}")
+        add_error(errors, "AFS005", f"Missing Status metadata: {shown_path}")
     elif status_match.group(1) not in ALLOWED_STATUSES:
         add_error(
             errors,
             "AFS006",
-            f"Invalid ADR status '{status_match.group(1)}': {path}",
+            f"Invalid ADR status '{status_match.group(1)}': {shown_path}",
         )
 
     if not date_match:
-        add_error(errors, "AFS005", f"Missing Date metadata: {path}")
+        add_error(errors, "AFS005", f"Missing Date metadata: {shown_path}")
     else:
         try:
             datetime.strptime(date_match.group(1), "%Y-%m-%d")
@@ -135,30 +152,44 @@ def validate_adr(path: Path, errors: list[str], numbers: list[int]) -> None:
             add_error(
                 errors,
                 "AFS007",
-                f"Invalid ADR date '{date_match.group(1)}': {path}",
+                f"Invalid ADR date '{date_match.group(1)}': {shown_path}",
             )
 
     for section in REQUIRED_SECTIONS:
         if section not in content:
-            add_error(errors, "AFS008", f"Missing section '{section}': {path}")
+            add_error(
+                errors,
+                "AFS008",
+                f"Missing section '{section}': {shown_path}",
+            )
 
 
-def command_validate(_: argparse.Namespace) -> int:
+def validate_repository(root: Path) -> list[str]:
+    root = root.resolve()
     errors: list[str] = []
 
-    for path in REQUIRED_PATHS:
+    for relative_path in REQUIRED_RELATIVE_PATHS:
+        path = root / relative_path
         if not path.exists():
-            add_error(errors, "AFS001", f"Missing required path: {path}")
+            add_error(errors, "AFS001", f"Missing required path: {relative_path}")
 
     numbers: list[int] = []
-    if ADR_DIR.exists():
-        for path in sorted(ADR_DIR.glob("*.md")):
+    adr_directory = root / ADR_RELATIVE_DIR
+    if adr_directory.exists():
+        for path in sorted(adr_directory.glob("*.md")):
             if path.name == "README.md":
                 continue
-            validate_adr(path, errors, numbers)
+            validate_adr(path, root, errors, numbers)
 
     for number in sorted({n for n in numbers if numbers.count(n) > 1}):
         add_error(errors, "AFS003", f"Duplicate ADR number: {number:04d}")
+
+    return errors
+
+
+def command_validate(args: argparse.Namespace) -> int:
+    root = Path(args.path)
+    errors = validate_repository(root)
 
     if errors:
         print("Validation failed:")
@@ -174,7 +205,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="afs", description="AFS repository tooling")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    validate = sub.add_parser("validate", help="Validate repository structure")
+    validate = sub.add_parser("validate", help="Validate an AFS repository")
+    validate.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Repository path to validate (default: current directory)",
+    )
     validate.set_defaults(func=command_validate)
 
     adr = sub.add_parser("adr", help="Manage architecture decision records")
@@ -182,11 +219,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     adr_new = adr_sub.add_parser("new", help="Create a new ADR")
     adr_new.add_argument("title")
-    adr_new.add_argument("--directory", default=str(ADR_DIR))
+    adr_new.add_argument("--directory", default=str(ADR_RELATIVE_DIR))
     adr_new.set_defaults(func=command_adr_new)
 
     adr_list = adr_sub.add_parser("list", help="List ADR files")
-    adr_list.add_argument("--directory", default=str(ADR_DIR))
+    adr_list.add_argument("--directory", default=str(ADR_RELATIVE_DIR))
     adr_list.set_defaults(func=command_adr_list)
 
     return parser

@@ -1,11 +1,10 @@
-# Core specification
+# AFS Core
 
-This directory contains the normative core of AFS.
+This directory contains the normative foundation of AFS.
 
-Planned topics:
+Current documents:
 
-- document model
-- identifiers
-- versioning
-- conformance language
-- processing model
+- `CHARTER.md` — purpose, scope, principles, and non-goals;
+- `AFS-CORE-0.1.md` — core conformance requirements.
+
+Supporting explanations belong under `docs/` and are informative unless explicitly stated otherwise.

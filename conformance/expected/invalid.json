@@ -1,0 +1,4 @@
+{
+  "invalid-status.md": {"valid": false, "errors":["AFS006"]},
+  "invalid-date.md": {"valid": false, "errors":["AFS007"]}
+}

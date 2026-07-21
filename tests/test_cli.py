@@ -8,6 +8,7 @@ from pathlib import Path
 
 from afs_cli.cli import (
     adr_template,
+    command_init,
     command_validate,
     next_adr_number,
     slugify,
@@ -35,6 +36,39 @@ class CliTests(unittest.TestCase):
         self.assertIn("# ADR-0007: Example", content)
         self.assertIn("- Status: Proposed", content)
         self.assertIn("## Alternatives considered", content)
+
+    def test_init_creates_valid_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            result = command_init(Namespace(str(root)))
+
+            self.assertEqual(result, 0)
+            self.assertEqual(validate_repository(root), [])
+
+    def test_init_is_idempotent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            command_init(Namespace(str(root)))
+            result = command_init(Namespace(str(root)))
+
+            self.assertEqual(result, 0)
+            self.assertEqual(validate_repository(root), [])
+
+    def test_init_does_not_overwrite_existing_files(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            readme = root / "README.md"
+            readme.write_text("# Existing project\n", encoding="utf-8")
+
+            command_init(Namespace(str(root)))
+
+            self.assertEqual(
+                readme.read_text(encoding="utf-8"),
+                "# Existing project\n",
+            )
+            self.assertEqual(validate_repository(root), [])
 
     def test_valid_repository_has_no_errors(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

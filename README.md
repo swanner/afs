@@ -10,11 +10,26 @@ This repository contains the first version of the **AFS CLI**, a small command-l
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-afs validate
+afs init /path/to/repository
+afs validate /path/to/repository
 afs adr new "Decision title"
 ```
 
 ## Commands
+
+Initialize a minimal valid AFS repository:
+
+```bash
+afs init
+```
+
+Initialize another directory:
+
+```bash
+afs init /path/to/repository
+```
+
+Existing files are preserved.
 
 Validate the current directory:
 

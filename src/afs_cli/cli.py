@@ -34,6 +34,24 @@ REQUIRED_SECTIONS = (
     "## Alternatives considered",
 )
 
+INITIAL_FILES = {
+    Path("README.md"): """# Architecture
+
+This repository uses the Architecture File Standard (AFS).
+
+Architecture decisions are stored in:
+
+- `specification/adr/`
+""",
+    Path("LICENSE"): "No license has been selected for this repository yet.\n",
+    Path("pyproject.toml"): """[project]
+name = "afs-architecture"
+version = "0.1.0"
+description = "Architecture documentation managed with AFS"
+requires-python = ">=3.10"
+""",
+}
+
 
 def slugify(value: str) -> str:
     value = value.strip().lower()
@@ -187,6 +205,27 @@ def validate_repository(root: Path) -> list[str]:
     return errors
 
 
+def command_init(args: argparse.Namespace) -> int:
+    root = Path(args.path)
+    (root / ADR_RELATIVE_DIR).mkdir(parents=True, exist_ok=True)
+
+    created = False
+    for relative_path, content in INITIAL_FILES.items():
+        path = root / relative_path
+        if path.exists():
+            continue
+
+        path.write_text(content, encoding="utf-8")
+        created = True
+
+    if created:
+        print(f"Initialized AFS repository at {root.resolve()}")
+    else:
+        print(f"AFS repository already initialized at {root.resolve()}")
+
+    return 0
+
+
 def command_validate(args: argparse.Namespace) -> int:
     root = Path(args.path)
     errors = validate_repository(root)
@@ -204,6 +243,15 @@ def command_validate(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="afs", description="AFS repository tooling")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    init = sub.add_parser("init", help="Initialize an AFS repository")
+    init.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Directory to initialize (default: current directory)",
+    )
+    init.set_defaults(func=command_init)
 
     validate = sub.add_parser("validate", help="Validate an AFS repository")
     validate.add_argument(

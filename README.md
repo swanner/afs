@@ -43,6 +43,8 @@ Validate another repository without changing directory:
 afs validate /path/to/repository
 ```
 
+Validation checks required paths, ADR filenames and metadata, duplicate or missing ADR numbers, numbering from `ADR-0001`, and unexpected files in `specification/adr`.
+
 Manage ADRs:
 
 ```bash

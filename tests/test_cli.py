@@ -91,7 +91,7 @@ class CliTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertEqual(output.getvalue(), "AFS repository validation passed.\n")
 
-    def test_invalid_status_reports_afs006(self) -> None:
+    def test_invalid_status_reports_afs202(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.create_repository(root)
@@ -104,7 +104,7 @@ class CliTests(unittest.TestCase):
             errors = validate_repository(root)
 
             self.assertEqual(len(errors), 1)
-            self.assertIn("AFS006", errors[0])
+            self.assertIn("AFS202", errors[0])
             self.assertIn("Invalid ADR status 'Unknown'", errors[0])
 
     def test_missing_required_path_reports_afs001(self) -> None:
@@ -113,7 +113,7 @@ class CliTests(unittest.TestCase):
 
             self.assertTrue(any(error.startswith("AFS001:") for error in errors))
 
-    def test_invalid_date_reports_afs007(self) -> None:
+    def test_invalid_date_reports_afs203(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.create_repository(root)
@@ -126,7 +126,91 @@ class CliTests(unittest.TestCase):
             errors = validate_repository(root)
 
             self.assertEqual(len(errors), 1)
-            self.assertIn("AFS007", errors[0])
+            self.assertIn("AFS203", errors[0])
+
+
+    def test_duplicate_number_reports_afs102(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.create_repository(root)
+            self.write_adr(root, "ADR-0001-one.md", adr_template(1, "One"))
+            self.write_adr(root, "ADR-0001-two.md", adr_template(1, "Two"))
+
+            errors = validate_repository(root)
+
+            self.assertIn("AFS102: Duplicate ADR number: 0001", errors)
+
+    def test_missing_number_reports_afs104(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.create_repository(root)
+            self.write_adr(root, "ADR-0001-one.md", adr_template(1, "One"))
+            self.write_adr(root, "ADR-0003-three.md", adr_template(3, "Three"))
+
+            errors = validate_repository(root)
+
+            self.assertIn("AFS104: Missing ADR number: 0002", errors)
+
+    def test_first_number_reports_afs105(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.create_repository(root)
+            self.write_adr(root, "ADR-0007-seven.md", adr_template(7, "Seven"))
+
+            errors = validate_repository(root)
+
+            self.assertIn("AFS105: First ADR number must be 0001", errors)
+
+    def test_unexpected_markdown_reports_afs106(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.create_repository(root)
+            path = root / "specification" / "adr" / "notes.md"
+            path.write_text("# Notes\n", encoding="utf-8")
+
+            errors = validate_repository(root)
+
+            self.assertIn(
+                "AFS106: Unexpected Markdown file: specification/adr/notes.md",
+                errors,
+            )
+
+    def test_readme_is_allowed_in_adr_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.create_repository(root)
+            path = root / "specification" / "adr" / "README.md"
+            path.write_text("# ADRs\n", encoding="utf-8")
+
+            self.assertEqual(validate_repository(root), [])
+
+    def test_non_markdown_file_reports_afs107(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.create_repository(root)
+            path = root / "specification" / "adr" / "notes.txt"
+            path.write_text("Notes\n", encoding="utf-8")
+
+            errors = validate_repository(root)
+
+            self.assertIn(
+                "AFS107: Non-Markdown file: specification/adr/notes.txt",
+                errors,
+            )
+
+    def test_invalid_adr_filename_reports_afs101(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.create_repository(root)
+            path = root / "specification" / "adr" / "ADR-1-invalid.md"
+            path.write_text("# Invalid\n", encoding="utf-8")
+
+            errors = validate_repository(root)
+
+            self.assertIn(
+                "AFS101: Invalid ADR filename: specification/adr/ADR-1-invalid.md",
+                errors,
+            )
 
     @staticmethod
     def create_repository(root: Path) -> None:

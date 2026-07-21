@@ -5,6 +5,7 @@ import re
 import sys
 from datetime import date, datetime
 from pathlib import Path
+from typing import Callable
 
 ADR_RELATIVE_DIR = Path("specification/adr")
 ADR_PATTERN = re.compile(r"^ADR-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$")
@@ -33,6 +34,9 @@ REQUIRED_SECTIONS = (
     "## Consequences",
     "## Alternatives considered",
 )
+
+ValidationRule = Callable[[Path, list[str]], None]
+
 
 INITIAL_FILES = {
     Path("README.md"): """# Architecture
@@ -125,82 +129,138 @@ def display_path(path: Path, root: Path) -> Path:
         return path
 
 
-def validate_adr(
-    path: Path,
-    root: Path,
-    errors: list[str],
-    numbers: list[int],
-) -> None:
-    shown_path = display_path(path, root)
-    match = ADR_PATTERN.match(path.name)
-    if not match:
-        add_error(errors, "AFS002", f"Invalid ADR filename: {shown_path}")
+def adr_markdown_files(root: Path) -> list[Path]:
+    directory = root / ADR_RELATIVE_DIR
+    if not directory.is_dir():
+        return []
+    return sorted(
+        path
+        for path in directory.iterdir()
+        if path.is_file() and path.suffix.lower() == ".md" and path.name != "README.md"
+    )
+
+
+def adr_numbers(root: Path) -> list[int]:
+    numbers: list[int] = []
+    for path in adr_markdown_files(root):
+        match = ADR_PATTERN.match(path.name)
+        if match:
+            numbers.append(int(match.group(1)))
+    return numbers
+
+
+def validate_required_paths(root: Path, errors: list[str]) -> None:
+    for relative_path in REQUIRED_RELATIVE_PATHS:
+        if not (root / relative_path).exists():
+            add_error(errors, "AFS001", f"Missing required path: {relative_path}")
+
+
+def validate_adr_directory_entries(root: Path, errors: list[str]) -> None:
+    directory = root / ADR_RELATIVE_DIR
+    if not directory.is_dir():
         return
 
-    number = int(match.group(1))
-    numbers.append(number)
-    content = path.read_text(encoding="utf-8")
+    for path in sorted(directory.iterdir()):
+        shown_path = display_path(path, root)
+        if path.is_dir():
+            add_error(errors, "AFS106", f"Unexpected entry: {shown_path}")
+        elif path.suffix.lower() != ".md":
+            add_error(errors, "AFS107", f"Non-Markdown file: {shown_path}")
+        elif path.name != "README.md" and not path.name.startswith("ADR-"):
+            add_error(errors, "AFS106", f"Unexpected Markdown file: {shown_path}")
 
-    heading_match = HEADING_PATTERN.search(content)
-    if not heading_match or int(heading_match.group(1)) != number:
-        add_error(
-            errors,
-            "AFS004",
-            f"Missing or inconsistent ADR heading: {shown_path}",
-        )
 
-    status_match = STATUS_PATTERN.search(content)
-    date_match = DATE_PATTERN.search(content)
+def validate_adr_files(root: Path, errors: list[str]) -> None:
+    for path in adr_markdown_files(root):
+        shown_path = display_path(path, root)
+        match = ADR_PATTERN.match(path.name)
+        if not match:
+            if path.name.startswith("ADR-"):
+                add_error(errors, "AFS101", f"Invalid ADR filename: {shown_path}")
+            continue
 
-    if not status_match:
-        add_error(errors, "AFS005", f"Missing Status metadata: {shown_path}")
-    elif status_match.group(1) not in ALLOWED_STATUSES:
-        add_error(
-            errors,
-            "AFS006",
-            f"Invalid ADR status '{status_match.group(1)}': {shown_path}",
-        )
+        number = int(match.group(1))
+        content = path.read_text(encoding="utf-8")
 
-    if not date_match:
-        add_error(errors, "AFS005", f"Missing Date metadata: {shown_path}")
-    else:
-        try:
-            datetime.strptime(date_match.group(1), "%Y-%m-%d")
-        except ValueError:
+        heading_match = HEADING_PATTERN.search(content)
+        if not heading_match or int(heading_match.group(1)) != number:
             add_error(
                 errors,
-                "AFS007",
-                f"Invalid ADR date '{date_match.group(1)}': {shown_path}",
+                "AFS103",
+                f"Missing or inconsistent ADR heading: {shown_path}",
             )
 
-    for section in REQUIRED_SECTIONS:
-        if section not in content:
+        status_match = STATUS_PATTERN.search(content)
+        date_match = DATE_PATTERN.search(content)
+
+        if not status_match:
+            add_error(errors, "AFS201", f"Missing Status metadata: {shown_path}")
+        elif status_match.group(1) not in ALLOWED_STATUSES:
             add_error(
                 errors,
-                "AFS008",
-                f"Missing section '{section}': {shown_path}",
+                "AFS202",
+                f"Invalid ADR status '{status_match.group(1)}': {shown_path}",
             )
+
+        if not date_match:
+            add_error(errors, "AFS201", f"Missing Date metadata: {shown_path}")
+        else:
+            try:
+                datetime.strptime(date_match.group(1), "%Y-%m-%d")
+            except ValueError:
+                add_error(
+                    errors,
+                    "AFS203",
+                    f"Invalid ADR date '{date_match.group(1)}': {shown_path}",
+                )
+
+        for section in REQUIRED_SECTIONS:
+            if section not in content:
+                add_error(
+                    errors,
+                    "AFS204",
+                    f"Missing section '{section}': {shown_path}",
+                )
+
+
+def validate_duplicate_adr_numbers(root: Path, errors: list[str]) -> None:
+    numbers = adr_numbers(root)
+    for number in sorted({n for n in numbers if numbers.count(n) > 1}):
+        add_error(errors, "AFS102", f"Duplicate ADR number: {number:04d}")
+
+
+def validate_first_adr_number(root: Path, errors: list[str]) -> None:
+    numbers = adr_numbers(root)
+    if numbers and min(numbers) != 1:
+        add_error(errors, "AFS105", "First ADR number must be 0001")
+
+
+def validate_contiguous_adr_numbers(root: Path, errors: list[str]) -> None:
+    numbers = sorted(set(adr_numbers(root)))
+    if len(numbers) < 2:
+        return
+
+    for number in range(numbers[0], numbers[-1] + 1):
+        if number not in numbers:
+            add_error(errors, "AFS104", f"Missing ADR number: {number:04d}")
+
+
+VALIDATION_RULES: tuple[ValidationRule, ...] = (
+    validate_required_paths,
+    validate_adr_directory_entries,
+    validate_adr_files,
+    validate_duplicate_adr_numbers,
+    validate_first_adr_number,
+    validate_contiguous_adr_numbers,
+)
 
 
 def validate_repository(root: Path) -> list[str]:
     root = root.resolve()
     errors: list[str] = []
 
-    for relative_path in REQUIRED_RELATIVE_PATHS:
-        path = root / relative_path
-        if not path.exists():
-            add_error(errors, "AFS001", f"Missing required path: {relative_path}")
-
-    numbers: list[int] = []
-    adr_directory = root / ADR_RELATIVE_DIR
-    if adr_directory.exists():
-        for path in sorted(adr_directory.glob("*.md")):
-            if path.name == "README.md":
-                continue
-            validate_adr(path, root, errors, numbers)
-
-    for number in sorted({n for n in numbers if numbers.count(n) > 1}):
-        add_error(errors, "AFS003", f"Duplicate ADR number: {number:04d}")
+    for rule in VALIDATION_RULES:
+        rule(root, errors)
 
     return errors
 

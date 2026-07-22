@@ -52,6 +52,17 @@ afs adr list
 afs adr new "Decision title"
 ```
 
+## Reference implementation
+
+Run the executable AFS reference architecture:
+
+```bash
+python -m reference.python.afs_reference
+```
+
+It demonstrates explicit Application → Unit → State Machine integration and a
+minimal Search & Replace template surface. See `reference/README.md`.
+
 ## Development
 
 ```bash

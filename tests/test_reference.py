@@ -9,7 +9,7 @@ from pathlib import Path
 from reference.python.afs_reference.application import Application
 from reference.python.afs_reference.main import build_application
 from reference.python.afs_reference.state_machine import State
-from reference.python.afs_reference.unit import AFS_TEMPLATE_UNIT
+from reference.python.afs_reference.unit import AFS_TEMPLATE_01_UNIT
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,7 +45,7 @@ class ReferenceImplementationTests(unittest.TestCase):
         self.assertEqual(calls, ["first", "second", "first", "second"])
 
     def test_unit_owns_state_machine_lifecycle(self) -> None:
-        unit = AFS_TEMPLATE_UNIT(target=2)
+        unit = AFS_TEMPLATE_01_UNIT(target=2)
 
         unit.scan()
         self.assertEqual(unit.status.state, State.EXECUTE)
@@ -93,7 +93,7 @@ class ReferenceImplementationTests(unittest.TestCase):
 
         self.assertEqual(
             identifiers,
-            {"AFS_TEMPLATE_STATE_MACHINE", "AFS_TEMPLATE_UNIT"},
+            {"AFS_TEMPLATE_02_STATE_MACHINE", "AFS_TEMPLATE_01_UNIT"},
         )
         self.assertLessEqual(occurrences, 16)
 
@@ -104,7 +104,7 @@ class ReferenceImplementationTests(unittest.TestCase):
         self.assertIn("AFS REQUIRED ADAPTATION", source)
         self.assertIn("AFS OPTIONAL", source)
         self.assertIn("AFS PATTERN", source)
-        self.assertIn("app.add_unit(AFS_TEMPLATE_UNIT(...))", source)
+        self.assertIn("app.add_unit(AFS_TEMPLATE_01_UNIT(...))", source)
 
 
 if __name__ == "__main__":

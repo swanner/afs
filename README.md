@@ -60,7 +60,7 @@ Run the executable AFS reference architecture:
 python -m reference.python.afs_reference
 ```
 
-It demonstrates explicit Application → Unit → State Machine integration and a
+It demonstrates explicit Application → Unit → Sequencer integration and a
 minimal Search & Replace template surface. See `reference/README.md`.
 
 ## Development

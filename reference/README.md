@@ -8,10 +8,10 @@ runnable example of how an AFS application is assembled:
 ```text
 Application
 └── Unit
-    └── State Machine
+    └── Sequencer
 ```
 
-The Application knows and executes Units. Each Unit owns its State Machine.
+The Application knows and executes Units. Each Unit owns its Sequencer.
 Registration is explicit; there is no automatic discovery or hidden framework
 magic.
 
@@ -58,10 +58,10 @@ Example replacement:
 Template 02
 -----------
 Identifier:
-    AFS_TEMPLATE_02_STATE_MACHINE
+    AFS_TEMPLATE_02_SEQUENCER
 
 Purpose:
-    Business State Machine
+    Business Sequencer
 
 Example replacement:
-    ChargingStateMachine
+    ChargingSequencer

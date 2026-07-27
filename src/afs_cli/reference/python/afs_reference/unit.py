@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .state_machine import AFS_TEMPLATE_02_STATE_MACHINE, State
+from .sequencer import AFS_TEMPLATE_02_SEQUENCER, State
 
 
 # =============================================================================
@@ -23,8 +23,8 @@ from .state_machine import AFS_TEMPLATE_02_STATE_MACHINE, State
 #        AFS_TEMPLATE_01_UNIT
 #            -> ChargingUnit
 #
-#        AFS_TEMPLATE_02_STATE_MACHINE
-#            -> ChargingStateMachine
+#        AFS_TEMPLATE_02_SEQUENCER
+#            -> ChargingSequencer
 #
 #    This also updates integration code such as:
 #
@@ -84,9 +84,9 @@ class AFS_TEMPLATE_01_UNIT:
         self._start_requested = True
         self._alarm: str | None = None
 
-        # AFS PATTERN: A Unit owns its State Machine. The Application knows only
-        # the Unit and never registers or drives the State Machine directly.
-        self._state_machine = AFS_TEMPLATE_02_STATE_MACHINE(target=target)
+        # AFS PATTERN: A Unit owns its Sequencer. The Application knows only
+        # the Unit and never registers or drives the Sequencer directly.
+        self._sequencer = AFS_TEMPLATE_02_SEQUENCER(target=target)
 
     @property
     def name(self) -> str:
@@ -96,7 +96,7 @@ class AFS_TEMPLATE_01_UNIT:
     def status(self) -> UnitStatus:
         return UnitStatus(
             name=self.name,
-            state=self._state_machine.state,
+            state=self._sequencer.state,
             value=self._value,
             alarm=self._alarm,
         )
@@ -104,10 +104,10 @@ class AFS_TEMPLATE_01_UNIT:
     def scan(self) -> None:
         # AFS REQUIRED ADAPTATION: Replace this deterministic demonstration
         # input with the real input evaluation owned by this Unit.
-        if self._state_machine.state is State.EXECUTE:
+        if self._sequencer.state is State.EXECUTE:
             self._value += 1
 
-        state = self._state_machine.evaluate(
+        state = self._sequencer.evaluate(
             value=self._value,
             start_requested=self._start_requested,
         )
@@ -115,7 +115,7 @@ class AFS_TEMPLATE_01_UNIT:
         # AFS OPTIONAL: This alarm demonstrates that alarm creation remains in
         # the Unit that understands the underlying condition. Delete it when
         # the application does not need an equivalent alarm.
-        self._alarm = "target exceeded" if self._value > self._state_machine.target else None
+        self._alarm = "target exceeded" if self._value > self._sequencer.target else None
 
         if state is State.COMPLETE:
             self._start_requested = False

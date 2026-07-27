@@ -9,7 +9,7 @@ from pathlib import Path
 
 from reference.python.afs_reference.application import Application
 from reference.python.afs_reference.main import build_application
-from reference.python.afs_reference.state_machine import State
+from reference.python.afs_reference.sequencer import State
 from reference.python.afs_reference.unit import AFS_TEMPLATE_01_UNIT
 
 
@@ -74,7 +74,7 @@ class ReferenceImplementationTests(unittest.TestCase):
 
         self.assertEqual(calls, ["first", "second", "first", "second"])
 
-    def test_unit_owns_state_machine_lifecycle(self) -> None:
+    def test_unit_owns_sequencer_lifecycle(self) -> None:
         unit = AFS_TEMPLATE_01_UNIT(target=2)
 
         unit.scan()
@@ -108,7 +108,7 @@ class ReferenceImplementationTests(unittest.TestCase):
             identifiers,
             {
                 "AFS_TEMPLATE_01_UNIT",
-                "AFS_TEMPLATE_02_STATE_MACHINE",
+                "AFS_TEMPLATE_02_SEQUENCER",
             },
         )
 

@@ -37,19 +37,31 @@ python -m unittest discover -s tests -v
 
 ## Adapt it
 
-Open `python/afs_reference/unit.py` first. Its `AFS TEMPLATE WORKFLOW` comment
-explains the complete copy, Search & Replace, adaptation, optional-code cleanup,
-and test workflow directly in the source code.
+Template API
+============
 
-The template surface is intentionally small. RC-004 contains exactly two unique
-application placeholders:
+The executable reference implementation exposes exactly two public template
+identifiers.
 
-```text
-AFS_TEMPLATE_UNIT
-AFS_TEMPLATE_STATE_MACHINE
-```
+Template 01
+-----------
+Identifier:
+    AFS_TEMPLATE_01_UNIT
 
-Every additional placeholder must be justified. Prefer simplifying the
-architecture over expanding the template surface.
+Purpose:
+    Business Unit
 
-Reference code follows the specification and must not silently redefine it.
+Example replacement:
+    ChargingUnit
+
+
+Template 02
+-----------
+Identifier:
+    AFS_TEMPLATE_02_STATE_MACHINE
+
+Purpose:
+    Business State Machine
+
+Example replacement:
+    ChargingStateMachine

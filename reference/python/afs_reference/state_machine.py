@@ -9,7 +9,19 @@ class State(Enum):
     COMPLETE = auto()
 
 
-class AFS_TEMPLATE_STATE_MACHINE:
+# =============================================================================
+# AFS TEMPLATE 02
+#
+# Template purpose:
+#     Concrete business State Machine class owned by one Unit.
+#
+# Example replacement:
+#     ChargingStateMachine
+#
+# This comment intentionally remains after customization. It documents the
+# architectural role and origin of the class in the AFS Reference Implementation.
+# =============================================================================
+class AFS_TEMPLATE_02_STATE_MACHINE:
     """Small deterministic State Machine owned by one Unit."""
 
     def __init__(self, target: int) -> None:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .state_machine import AFS_TEMPLATE_STATE_MACHINE, State
+from .state_machine import AFS_TEMPLATE_02_STATE_MACHINE, State
 
 
 # =============================================================================
@@ -20,15 +20,15 @@ from .state_machine import AFS_TEMPLATE_STATE_MACHINE, State
 #
 #    Example:
 #
-#        AFS_TEMPLATE_UNIT
+#        AFS_TEMPLATE_01_UNIT
 #            -> ChargingUnit
 #
-#        AFS_TEMPLATE_STATE_MACHINE
+#        AFS_TEMPLATE_02_STATE_MACHINE
 #            -> ChargingStateMachine
 #
 #    This also updates integration code such as:
 #
-#        app.add_unit(AFS_TEMPLATE_UNIT(...))
+#        app.add_unit(AFS_TEMPLATE_01_UNIT(...))
 #
 #    Do not introduce another AFS_TEMPLATE_* identifier unless the adaptation
 #    cannot reasonably be eliminated through a simpler architecture.
@@ -63,7 +63,19 @@ class UnitStatus:
     alarm: str | None
 
 
-class AFS_TEMPLATE_UNIT:
+# =============================================================================
+# AFS TEMPLATE 01
+#
+# Template purpose:
+#     Concrete business Unit class.
+#
+# Example replacement:
+#     ChargingUnit
+#
+# This comment intentionally remains after customization. It documents the
+# architectural role and origin of the class in the AFS Reference Implementation.
+# =============================================================================
+class AFS_TEMPLATE_01_UNIT:
     """Reference Unit demonstrating ownership, parameters, state and alarms."""
 
     def __init__(self, target: int = 3) -> None:
@@ -74,7 +86,7 @@ class AFS_TEMPLATE_UNIT:
 
         # AFS PATTERN: A Unit owns its State Machine. The Application knows only
         # the Unit and never registers or drives the State Machine directly.
-        self._state_machine = AFS_TEMPLATE_STATE_MACHINE(target=target)
+        self._state_machine = AFS_TEMPLATE_02_STATE_MACHINE(target=target)
 
     @property
     def name(self) -> str:

@@ -1,3 +1,10 @@
+"""
+AFS Unit.
+
+A Unit owns application state and its State Machine.
+It evaluates inputs, updates state and exposes status.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

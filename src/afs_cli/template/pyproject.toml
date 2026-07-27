@@ -3,17 +3,11 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "afs-cli"
+name = "afs-reference-project"
 version = "0.1.0"
-description = "Command-line tooling for the AFS specification project"
-readme = "README.md"
+description = "Runnable project initialized with the Architecture File Standard"
 requires-python = ">=3.10"
-license = {text = "MIT"}
-authors = [{name = "Stefan Wanner"}]
 dependencies = []
-
-[project.scripts]
-afs = "afs_cli.cli:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

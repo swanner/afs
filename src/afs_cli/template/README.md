@@ -1,71 +1,33 @@
-# AFS
+# New AFS Project
 
-AFS is a specification-first project for documenting, validating, and evolving architecture decisions.
+This project was created with the Architecture File Standard (AFS).
 
-This repository contains the first version of the **AFS CLI**, a small command-line tool that helps manage ADRs and validate repository structure.
+It contains a runnable reference implementation that can be replaced with your own application while preserving the AFS architecture.
 
-## Quick start
+## Project Structure
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e .
-afs init /path/to/repository
-afs validate /path/to/repository
-afs adr new "Decision title"
+```
+src/
+    afs_reference/
+specification/
+    adr/
 ```
 
-## Commands
-
-Initialize a minimal valid AFS repository:
+## Run the Reference Application
 
 ```bash
-afs init
+PYTHONPATH=src python -m afs_reference
 ```
 
-Initialize another directory:
+Expected output:
 
-```bash
-afs init /path/to/repository
+```text
+template-unit: state=COMPLETE value=3 alarm=none
 ```
 
-Existing files are preserved.
+## Next Steps
 
-Validate the current directory:
-
-```bash
-afs validate
-```
-
-Validate another repository without changing directory:
-
-```bash
-afs validate /path/to/repository
-```
-
-Validation checks required paths, ADR filenames and metadata, duplicate or missing ADR numbers, numbering from `ADR-0001`, and unexpected files in `specification/adr`.
-
-Manage ADRs:
-
-```bash
-afs adr list
-afs adr new "Decision title"
-```
-
-## Reference implementation
-
-Run the executable AFS reference architecture:
-
-```bash
-python -m reference.python.afs_reference
-```
-
-It demonstrates explicit Application → Unit → State Machine integration and a
-minimal Search & Replace template surface. See `reference/README.md`.
-
-## Development
-
-```bash
-make validate
-make test
-```
+1. Explore the reference implementation.
+2. Create your own Units and State Machines.
+3. Record important architectural decisions in `specification/adr`.
+4. Replace the reference application with your own logic.

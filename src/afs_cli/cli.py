@@ -14,6 +14,7 @@ HEADING_PATTERN = re.compile(r"^# ADR-(\d{4}):\s+.+$", re.MULTILINE)
 STATUS_PATTERN = re.compile(r"^- Status:\s*(.+?)\s*$", re.MULTILINE)
 DATE_PATTERN = re.compile(r"^- Date:\s*(.+?)\s*$", re.MULTILINE)
 TEMPLATE_DIR = Path(__file__).parent / "template"
+REFERENCE_DIR = Path(__file__).parent / "reference" / "python" / "afs_reference"
 
 
 ALLOWED_STATUSES = {
@@ -249,15 +250,12 @@ def validate_repository(root: Path) -> list[str]:
     return errors
 
 
-def command_init(args: argparse.Namespace) -> int:
-    root = Path(args.path)
-    root.mkdir(parents=True, exist_ok=True)
-
+def copy_missing_tree(source_root: Path, destination_root: Path) -> bool:
     created = False
 
-    for source in TEMPLATE_DIR.rglob("*"):
-        relative_path = source.relative_to(TEMPLATE_DIR)
-        destination = root / relative_path
+    for source in source_root.rglob("*"):
+        relative = source.relative_to(source_root)
+        destination = destination_root / relative
 
         if source.is_dir():
             destination.mkdir(parents=True, exist_ok=True)
@@ -269,6 +267,42 @@ def command_init(args: argparse.Namespace) -> int:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
         created = True
+
+    return created
+
+
+def copy_missing_tree(source_root: Path, destination_root: Path) -> bool:
+    created = False
+
+    for source in source_root.rglob("*"):
+        relative = source.relative_to(source_root)
+        destination = destination_root / relative
+
+        if source.is_dir():
+            destination.mkdir(parents=True, exist_ok=True)
+            continue
+
+        if destination.exists():
+            continue
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+        created = True
+
+    return created
+
+
+def command_init(args: argparse.Namespace) -> int:
+    root = Path(args.path)
+    root.mkdir(parents=True, exist_ok=True)
+
+    created = False
+
+    created |= copy_missing_tree(TEMPLATE_DIR, root)
+    created |= copy_missing_tree(
+        REFERENCE_DIR,
+        root / "src" / "afs_reference",
+    )
 
     if created:
         print(f"Initialized AFS repository at {root.resolve()}")

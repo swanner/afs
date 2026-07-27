@@ -46,6 +46,20 @@ class CliTests(unittest.TestCase):
             self.assertEqual(result, 0)
             self.assertEqual(validate_repository(root), [])
 
+    def test_init_installs_reference_implementation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            result = command_init(Namespace(str(root)))
+
+            self.assertEqual(result, 0)
+            self.assertTrue(
+                (root / "src" / "afs_reference" / "application.py").is_file()
+            )
+            self.assertTrue(
+                (root / "src" / "afs_reference" / "__main__.py").is_file()
+            )
+
     def test_init_is_idempotent(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import shutil
 from datetime import date, datetime
 from pathlib import Path
 from typing import Callable
@@ -12,6 +13,8 @@ ADR_PATTERN = re.compile(r"^ADR-(\d{4})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$")
 HEADING_PATTERN = re.compile(r"^# ADR-(\d{4}):\s+.+$", re.MULTILINE)
 STATUS_PATTERN = re.compile(r"^- Status:\s*(.+?)\s*$", re.MULTILINE)
 DATE_PATTERN = re.compile(r"^- Date:\s*(.+?)\s*$", re.MULTILINE)
+TEMPLATE_DIR = Path(__file__).parent / "template"
+
 
 ALLOWED_STATUSES = {
     "Proposed",
@@ -36,25 +39,6 @@ REQUIRED_SECTIONS = (
 )
 
 ValidationRule = Callable[[Path, list[str]], None]
-
-
-INITIAL_FILES = {
-    Path("README.md"): """# Architecture
-
-This repository uses the Architecture File Standard (AFS).
-
-Architecture decisions are stored in:
-
-- `specification/adr/`
-""",
-    Path("LICENSE"): "No license has been selected for this repository yet.\n",
-    Path("pyproject.toml"): """[project]
-name = "afs-architecture"
-version = "0.1.0"
-description = "Architecture documentation managed with AFS"
-requires-python = ">=3.10"
-""",
-}
 
 
 def slugify(value: str) -> str:
@@ -267,15 +251,23 @@ def validate_repository(root: Path) -> list[str]:
 
 def command_init(args: argparse.Namespace) -> int:
     root = Path(args.path)
-    (root / ADR_RELATIVE_DIR).mkdir(parents=True, exist_ok=True)
+    root.mkdir(parents=True, exist_ok=True)
 
     created = False
-    for relative_path, content in INITIAL_FILES.items():
-        path = root / relative_path
-        if path.exists():
+
+    for source in TEMPLATE_DIR.rglob("*"):
+        relative_path = source.relative_to(TEMPLATE_DIR)
+        destination = root / relative_path
+
+        if source.is_dir():
+            destination.mkdir(parents=True, exist_ok=True)
             continue
 
-        path.write_text(content, encoding="utf-8")
+        if destination.exists():
+            continue
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
         created = True
 
     if created:

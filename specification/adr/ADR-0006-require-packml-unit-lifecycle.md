@@ -11,11 +11,11 @@ lifecycle vocabulary such as `DISABLED`, `WAITING`, `RUNNING`, or `DONE` creates
 parallel meanings and forces every application to define basic operational
 behaviour again.
 
-PackML, standardized through ISA-TR88.00.02, already defines machine and Unit
-states, commands, modes, and transition semantics. AFS previously demonstrated
-PackML as an additional status alongside application state. That does not gain
-the structural benefit of the standard and permits the application lifecycle to
-remain authoritative.
+PackML, currently specified by ISA-TR88.00.02-2022, already defines machine and
+Unit states, commands, modes, and transition semantics. AFS previously
+demonstrated PackML as an additional status alongside application state. That
+does not gain the structural benefit of the standard and permits the application
+lifecycle to remain authoritative.
 
 Domain state is still necessary. For example, solar availability can move
 through hysteresis states while the Unit that evaluates it remains operational.
@@ -24,14 +24,18 @@ sequencing.
 
 ## Decision
 
-Every AFS Unit MUST own exactly one PackML lifecycle state machine. The PackML
-lifecycle is the authoritative representation of the Unit's operational state.
+Every AFS Unit MUST own one authoritative PackML lifecycle. The lifecycle is the
+authoritative representation of the Unit's operational state. AFS does not
+prescribe whether an implementation represents that lifecycle internally as one
+state machine or as several nested and mode-dependent state machines.
 
-An AFS Unit MUST support the PackML stable states `STOPPED`, `IDLE`, `EXECUTE`,
-and `ABORTED`. It MUST implement the PackML commands and transition states needed
-by its supported behaviour. When a PackML branch such as hold, suspend, complete,
-stop, or abort describes the Unit's behaviour, the Unit MUST use the PackML
-states and transition semantics for that branch rather than introduce an
+The AFS PackML Lifecycle Profile MUST require every Unit to support the stable
+states `STOPPED`, `IDLE`, `EXECUTE`, and `ABORTED`. This is an AFS minimum profile
+and is not a claim that those four states alone constitute complete PackML
+conformance. A Unit MUST implement the PackML commands and transition states
+needed by its supported behaviour. When a PackML branch such as hold, suspend,
+complete, stop, or abort describes the Unit's behaviour, the Unit MUST use the
+PackML states and transition semantics for that branch rather than introduce an
 application-specific equivalent.
 
 A Unit MAY declare PackML states unsupported when their semantics do not occur
@@ -51,6 +55,11 @@ states merely to make evaluation steps visible.
 PackML modes MUST retain operational meaning. An application strategy, override,
 permission source, or configuration option MUST NOT be represented as a PackML
 mode unless it actually changes how the Unit is operated in the PackML sense.
+
+Conformance to the AFS PackML Lifecycle Profile does not by itself claim complete
+PackML conformance. PackML interface elements outside the AFS lifecycle profile,
+including its broader command, status, and administration data model, remain
+outside the initial profile unless a later version explicitly adopts them.
 
 Every Unit status MUST expose at least:
 
@@ -81,8 +90,10 @@ requires precise transition semantics. This cost is accepted because PackML is
 intended to structure every Unit, not merely demonstrate that PackML terminology
 exists somewhere in an application.
 
-The AFS reference implementation and conformance suite must be updated to verify
-this contract before application implementations claim conformance.
+This decision MUST be expressed by a versioned normative specification named
+`AFS-PACKML-UNIT-PROFILE-0.1`. The AFS reference implementation and conformance
+suite must be updated to verify that profile before application implementations
+claim AFS PackML Lifecycle Profile conformance.
 
 ## Alternatives considered
 
@@ -96,3 +107,6 @@ Requiring every PackML state in every Unit was rejected because PackML permits
 state selection and many Units do not have meaningful hold, suspend, or complete
 behaviour. States that are used must retain their standard meaning.
 
+Claiming complete PackML conformance from lifecycle states alone was rejected
+because PackML also defines interface and data-model requirements that the
+initial AFS lifecycle profile does not adopt.

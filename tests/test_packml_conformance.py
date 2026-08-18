@@ -60,6 +60,10 @@ class PackMLConformanceTests(unittest.TestCase):
                 supported_states={PackMLState.STOPPED},
             )
 
+    def test_optional_acting_state_requires_its_wait_state(self) -> None:
+        with self.assertRaisesRegex(ValueError, "SUSPENDING requires SUSPENDED"):
+            self.lifecycle(PackMLState.SUSPENDING)
+
     def test_state_is_read_only(self) -> None:
         lifecycle = self.lifecycle()
 
@@ -201,6 +205,40 @@ class PackMLConformanceTests(unittest.TestCase):
         self.assertEqual(lifecycle.status.reason, "RESTORE_STATE_INVALID")
         self.assertTrue(lifecycle.status.conditions[0].fault)
 
+    def test_known_but_unsafe_restored_state_enters_aborted(self) -> None:
+        lifecycle = PackMLLifecycle(
+            mode="AUTOMATIC",
+            supported_states=REQUIRED_STATES,
+            restored_state=PackMLState.EXECUTE,
+        )
+
+        self.assertEqual(lifecycle.state, PackMLState.ABORTED)
+        self.assertEqual(lifecycle.status.reason, "RESTORE_STATE_INVALID")
+        self.assertIn("unsafe restored state", lifecycle.status.conditions[0].message)
+
+    def test_explicit_safe_restore_policy_can_restore_idle(self) -> None:
+        lifecycle = PackMLLifecycle(
+            mode="AUTOMATIC",
+            supported_states=REQUIRED_STATES,
+            restored_state=PackMLState.IDLE,
+            restorable_states={
+                PackMLState.STOPPED,
+                PackMLState.IDLE,
+                PackMLState.ABORTED,
+            },
+        )
+
+        self.assertEqual(lifecycle.state, PackMLState.IDLE)
+        self.assertIn(PackMLState.IDLE, lifecycle.status.restorable_states)
+
+    def test_acting_state_cannot_be_declared_restorable(self) -> None:
+        with self.assertRaisesRegex(ValueError, "acting states cannot be restored"):
+            PackMLLifecycle(
+                mode="AUTOMATIC",
+                supported_states=REQUIRED_STATES | {PackMLState.RESETTING},
+                restorable_states={PackMLState.RESETTING},
+            )
+
     def test_status_exposes_mode_capabilities_and_conditions(self) -> None:
         lifecycle = self.lifecycle(PackMLState.COMPLETE)
         condition = LifecycleCondition("READY", "Unit is ready")
@@ -210,6 +248,10 @@ class PackMLConformanceTests(unittest.TestCase):
 
         self.assertEqual(status.mode, "AUTOMATIC")
         self.assertEqual(status.supported_modes, frozenset({"AUTOMATIC"}))
+        self.assertEqual(
+            status.restorable_states,
+            frozenset({PackMLState.STOPPED, PackMLState.ABORTED}),
+        )
         self.assertIn(PackMLState.STOPPED, status.supported_states)
         self.assertIn(PackMLCommand.COMPLETE, status.supported_commands)
         self.assertEqual(status.conditions, (condition,))

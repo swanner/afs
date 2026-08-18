@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .packml import LifecycleStatus
 from .state_machine import AFS_TEMPLATE_02_STATE_MACHINE, State
+from .unit_runtime import PackMLUnit
 
 
 # =============================================================================
@@ -59,6 +61,7 @@ from .state_machine import AFS_TEMPLATE_02_STATE_MACHINE, State
 class UnitStatus:
     name: str
     state: State
+    lifecycle: LifecycleStatus
     value: int
     alarm: str | None
 
@@ -75,11 +78,10 @@ class UnitStatus:
 # This comment intentionally remains after customization. It documents the
 # architectural role and origin of the class in the AFS Reference Implementation.
 # =============================================================================
-class AFS_TEMPLATE_01_UNIT:
+class AFS_TEMPLATE_01_UNIT(PackMLUnit):
     """Reference Unit demonstrating ownership, parameters, state and alarms."""
 
     def __init__(self, target: int = 3) -> None:
-        self._name = "template-unit"
         self._value = 0
         self._start_requested = True
         self._alarm: str | None = None
@@ -87,16 +89,17 @@ class AFS_TEMPLATE_01_UNIT:
         # AFS PATTERN: A Unit owns its State Machine. The Application knows only
         # the Unit and never registers or drives the State Machine directly.
         self._state_machine = AFS_TEMPLATE_02_STATE_MACHINE(target=target)
-
-    @property
-    def name(self) -> str:
-        return self._name
+        super().__init__(
+            name="template-unit",
+            lifecycle=self._state_machine.lifecycle,
+        )
 
     @property
     def status(self) -> UnitStatus:
         return UnitStatus(
             name=self.name,
             state=self._state_machine.state,
+            lifecycle=self.lifecycle.status,
             value=self._value,
             alarm=self._alarm,
         )

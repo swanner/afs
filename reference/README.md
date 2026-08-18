@@ -7,13 +7,26 @@ runnable example of how an AFS application is assembled:
 
 ```text
 Application
-└── Unit
-    └── State Machine
+├── Unit
+│   ├── PackML lifecycle
+│   └── Domain State Machine
+└── Parent Unit
+    └── Subunit
+        └── PackML lifecycle
 ```
 
-The Application knows and executes Units. Each Unit owns its State Machine.
-Registration is explicit; there is no automatic discovery or hidden framework
-magic.
+The Application knows and executes top-level Units. Each Unit owns one
+authoritative PackML lifecycle and may own domain State Machines. A Parent owns
+and scans its Subunits. Registration is explicit; there is no automatic
+discovery or hidden framework magic.
+
+The generic runtime demonstrates:
+
+- required PackML states, Requests, guards, commands, and observable transitions;
+- abort precedence, explicit recovery, modes, status, Conditions, and reasons;
+- explicit acyclic Unit ownership;
+- deterministic Parent/Subunit command propagation and aggregation;
+- independent peer Units that exchange data without lifecycle ownership.
 
 ## Run it
 

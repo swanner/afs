@@ -23,8 +23,8 @@ hierarchy of Units.
 ## Decision
 
 AFS supports recursive Unit composition. A Subunit is a complete AFS Unit that
-conforms to the same PackML Unit Contract as a top-level Unit. `Subunit` describes
-its ownership position and does not define a weaker Unit type.
+conforms to the same AFS PackML Lifecycle Profile as a top-level Unit. `Subunit`
+describes its ownership position and does not define a weaker Unit type.
 
 An Application explicitly registers top-level Units. A parent Unit explicitly
 registers its direct Subunits. Automatic discovery is not permitted. A Unit MUST
@@ -78,8 +78,10 @@ Applications without lifecycle ownership relationships remain flat. In
 particular, consuming another Unit's observation does not make the consumer its
 parent.
 
-The AFS reference implementation and conformance suite must demonstrate both
-peer communication and Parent/Subunit coordination.
+This decision MUST be expressed by a versioned normative specification named
+`AFS-UNIT-COMPOSITION-0.1`. The AFS reference implementation and conformance
+suite must demonstrate both peer communication and Parent/Subunit coordination
+before an implementation claims conformance to that specification.
 
 ## Alternatives considered
 

@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from enum import Enum, auto
+from .packml import (
+    PackMLCommand,
+    PackMLLifecycle,
+    PackMLState,
+    REQUIRED_STATES,
+)
 
 
-class State(Enum):
-    IDLE = auto()
-    EXECUTE = auto()
-    COMPLETE = auto()
+State = PackMLState
 
 
 # =============================================================================
@@ -28,13 +30,41 @@ class AFS_TEMPLATE_02_STATE_MACHINE:
         if target < 1:
             raise ValueError("target must be at least 1")
         self.target = target
-        self.state = State.IDLE
+        self.lifecycle = PackMLLifecycle(
+            mode="AUTOMATIC",
+            supported_states=REQUIRED_STATES
+            | {
+                State.RESETTING,
+                State.STARTING,
+                State.STOPPING,
+                State.ABORTING,
+                State.CLEARING,
+                State.COMPLETING,
+                State.COMPLETE,
+            },
+        )
+
+    @property
+    def state(self) -> State:
+        return self.lifecycle.state
 
     def evaluate(self, value: int, start_requested: bool) -> State:
         """Evaluate one scan and return the resulting state."""
-        if self.state is State.IDLE and start_requested:
-            self.state = State.EXECUTE
-        elif self.state is State.EXECUTE and value >= self.target:
-            self.state = State.COMPLETE
+        if self.state is State.STOPPED and self.lifecycle.status.pending_request is None:
+            self.lifecycle.request(PackMLCommand.RESET)
+        elif (
+            self.state is State.IDLE
+            and start_requested
+            and self.lifecycle.status.pending_request is None
+        ):
+            self.lifecycle.request(PackMLCommand.START)
+        elif (
+            self.state is State.EXECUTE
+            and value >= self.target
+            and self.lifecycle.status.pending_request is None
+        ):
+            self.lifecycle.request(PackMLCommand.COMPLETE)
 
+        self.lifecycle.begin_scan()
+        self.lifecycle.complete_scan(state_complete=True)
         return self.state

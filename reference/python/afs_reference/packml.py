@@ -47,6 +47,21 @@ REQUIRED_STATES = frozenset(
     }
 )
 
+ACTING_STATES = frozenset(
+    {
+        PackMLState.CLEARING,
+        PackMLState.STARTING,
+        PackMLState.STOPPING,
+        PackMLState.ABORTING,
+        PackMLState.HOLDING,
+        PackMLState.UNHOLDING,
+        PackMLState.SUSPENDING,
+        PackMLState.UNSUSPENDING,
+        PackMLState.RESETTING,
+        PackMLState.COMPLETING,
+    }
+)
+
 
 @dataclass(frozen=True)
 class LifecycleCondition:
@@ -68,6 +83,7 @@ class LifecycleStatus:
     state: PackMLState
     mode: str
     supported_modes: frozenset[str]
+    restorable_states: frozenset[PackMLState]
     state_complete: bool
     supported_states: frozenset[PackMLState]
     supported_commands: frozenset[PackMLCommand]
@@ -139,6 +155,7 @@ class PackMLLifecycle:
         mode: str,
         supported_states: Iterable[PackMLState],
         restored_state: PackMLState | str | None = None,
+        restorable_states: Iterable[PackMLState] | None = None,
     ) -> None:
         states = frozenset(supported_states)
         missing = REQUIRED_STATES - states
@@ -147,10 +164,22 @@ class PackMLLifecycle:
             raise ValueError(f"missing required PackML states: {names}")
         if not mode.strip():
             raise ValueError("mode must not be empty")
+        self._validate_optional_states(states)
+
+        declared_restorable = frozenset(
+            restorable_states
+            if restorable_states is not None
+            else {PackMLState.STOPPED, PackMLState.ABORTED}
+        )
+        if not declared_restorable <= states:
+            raise ValueError("restorable states must be supported")
+        if declared_restorable & ACTING_STATES:
+            raise ValueError("acting states cannot be restored without transition context")
 
         self._mode = mode
         self._supported_states = states
         self._supported_commands = self._derive_supported_commands(states)
+        self._restorable_states = declared_restorable
         self._pending_request: PackMLCommand | None = None
         self._active_command: PackMLCommand | None = None
         self._transition_target: PackMLState | None = None
@@ -163,6 +192,21 @@ class PackMLLifecycle:
         self._state = PackMLState.STOPPED
         if restored_state is not None:
             self._restore(restored_state)
+
+    @staticmethod
+    def _validate_optional_states(states: frozenset[PackMLState]) -> None:
+        acting_requires_wait = {
+            PackMLState.HOLDING: PackMLState.HELD,
+            PackMLState.UNHOLDING: PackMLState.HELD,
+            PackMLState.SUSPENDING: PackMLState.SUSPENDED,
+            PackMLState.UNSUSPENDING: PackMLState.SUSPENDED,
+            PackMLState.COMPLETING: PackMLState.COMPLETE,
+        }
+        for acting, wait in acting_requires_wait.items():
+            if acting in states and wait not in states:
+                raise ValueError(
+                    f"optional acting state {acting.value} requires {wait.value}"
+                )
 
     @staticmethod
     def _derive_supported_commands(
@@ -198,6 +242,10 @@ class PackMLLifecycle:
             self._enter_restore_fault(f"unsupported restored state: {state.value}")
             return
 
+        if state not in self._restorable_states:
+            self._enter_restore_fault(f"unsafe restored state: {state.value}")
+            return
+
         self._state = state
 
     def _enter_restore_fault(self, message: str) -> None:
@@ -217,6 +265,7 @@ class PackMLLifecycle:
             state=self._state,
             mode=self._mode,
             supported_modes=frozenset({self._mode}),
+            restorable_states=self._restorable_states,
             state_complete=self._state_complete,
             supported_states=self._supported_states,
             supported_commands=self._supported_commands,

@@ -1,30 +1,27 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import Protocol
 
-
-class Unit(Protocol):
-    """The minimal interface an AFS Unit exposes to the Application."""
-
-    @property
-    def name(self) -> str: ...
-
-    def scan(self) -> None: ...
+from .unit_runtime import PackMLUnit
 
 
 class Application:
     """Owns Units and executes them explicitly in registration order."""
 
     def __init__(self) -> None:
-        self._units: list[Unit] = []
+        self._units: list[PackMLUnit] = []
 
     @property
-    def units(self) -> Iterable[Unit]:
+    def units(self) -> Iterable[PackMLUnit]:
         return tuple(self._units)
 
-    def add_unit(self, unit: Unit) -> None:
+    def add_unit(self, unit: PackMLUnit) -> None:
         """Register one Unit explicitly; AFS performs no automatic discovery."""
+        if not isinstance(unit, PackMLUnit):
+            raise TypeError("Application accepts PackMLUnit instances only")
+        if unit in self._units:
+            raise ValueError("Unit is already registered")
+        unit._claim_owner(self)
         self._units.append(unit)
 
     def run(self, scans: int = 1) -> None:

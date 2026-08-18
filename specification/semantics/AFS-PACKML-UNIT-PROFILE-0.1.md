@@ -36,7 +36,20 @@ Only the authoritative lifecycle may describe whether the Unit is stopped,
 ready, executing, suspended, complete, or aborted. Domain state MUST NOT create a
 parallel operational lifecycle.
 
-## 4. Required state profile
+## 4. Initialization and recovery
+
+A newly created Unit that has no restored lifecycle state MUST initialize in
+`STOPPED`, unless a detected fault requires initialization in `ABORTED`.
+
+A valid persisted state MAY be restored only under an explicit recovery policy
+that proves the state remains safe and consistent with current Observations. An
+unknown, unsupported, or unsafe restored state MUST NOT be treated as valid. The
+Unit MUST expose a fault and enter a documented safe recovery path.
+
+Automatic startup policy MAY create lifecycle Requests. It MUST NOT bypass the
+required PackML commands or assign the startup target state directly.
+
+## 5. Required state profile
 
 Every Unit MUST support these PackML states in every operational mode declared
 conformant to this profile:
@@ -51,7 +64,23 @@ conformant to this profile:
 These four states are the AFS minimum profile. Their presence alone does not
 constitute complete PackML conformance.
 
-## 5. Required commands and minimum transitions
+## 6. Requests, guards, and commands
+
+An AFS lifecycle Request expresses a desired lifecycle outcome and MAY remain
+pending while a transition guard is false. A PackML command is the discrete
+action that initiates a PackML transition from a valid source state.
+
+A Unit MUST evaluate the applicable guard before issuing or accepting a command.
+While a Request is pending and blocked, the Unit MUST remain in its current
+PackML state and SHOULD expose the blocking reason. It MUST issue the command
+when the guard becomes true unless the Request has been withdrawn or superseded
+according to an explicit priority policy.
+
+For example, a Charging Unit may expose `START_REQUESTED` while remaining in
+`IDLE` with reason `SOLAR_UNAVAILABLE`. The Unit issues `START` only after solar
+availability satisfies the start guard.
+
+## 7. Required commands and minimum transitions
 
 Every Unit MUST implement the following PackML commands and source-state
 semantics:
@@ -73,7 +102,7 @@ invalid command.
 Repeated delivery of the active request SHOULD be idempotent. A Unit MUST NOT
 report a target state before the conditions required by that state are true.
 
-## 6. Transition states
+## 8. Transition states
 
 A Unit MUST use the applicable PackML transition state when entering or leaving
 a required or optional wait state requires observable work, external
@@ -93,7 +122,7 @@ to hide unfinished work or missing confirmation.
 An acting transition state MUST remain active until its state-complete condition
 is true or another valid PackML transition, such as abort, takes precedence.
 
-## 7. Optional PackML branches
+## 9. Optional PackML branches
 
 A Unit MUST declare which optional states and commands it supports. When the
 following semantics occur, the corresponding PackML branch MUST be used instead
@@ -108,7 +137,7 @@ of an application-specific lifecycle state:
 Unsupported states MUST NOT be renamed, repurposed, or used with different
 semantics.
 
-## 8. Modes
+## 10. Modes
 
 Every Unit MUST declare at least one PackML mode and its supported states and
 commands. The current mode MUST be observable.
@@ -120,7 +149,7 @@ unless it actually changes that operational strategy.
 A mode change MUST follow an explicit, documented policy. It MUST NOT silently
 invalidate the current state.
 
-## 9. Domain sequencers
+## 11. Domain sequencers
 
 A Unit MAY own zero or more domain sequencers. A domain sequencer represents
 process values or application progression that PackML does not represent.
@@ -140,7 +169,7 @@ An implementation MUST classify every state-like value as one of:
 A guard or calculation MUST NOT be exposed as a lifecycle state merely to make
 an evaluation step visible.
 
-## 10. Status contract
+## 12. Status contract
 
 Every Unit MUST expose at least:
 
@@ -156,16 +185,14 @@ Every Unit MUST expose at least:
 A diagnostic reason MAY explain why a Unit is `IDLE`, `SUSPENDED`, or another
 state. It MUST NOT redefine the meaning of that state.
 
-If the runtime persists lifecycle state, an unknown or unsupported restored state
-MUST NOT be treated as valid. The Unit MUST enter a documented safe recovery path
-and expose a fault.
-
-## 11. Conformance
+## 13. Conformance
 
 An implementation conforms to this profile only when automated tests verify:
 
 - ownership and direct-assignment prohibition;
+- initialization and restored-state recovery;
 - all required states and commands;
+- distinction between pending Requests, transition guards, and commands;
 - valid and invalid minimum transitions;
 - state-complete behaviour across multiple scans;
 - abort precedence and explicit clear recovery;

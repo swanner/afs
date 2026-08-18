@@ -89,12 +89,16 @@ degraded form. No universal child-fault-to-parent-state mapping is implied.
 
 A Parent scan that coordinates Subunits MUST use these logical phases:
 
-1. evaluate the Parent's current request and relevant Observations;
-2. derive and publish commands or Requests for participating Subunits;
-3. scan direct Subunits once in explicit registration order;
-4. aggregate Subunit status, Conditions, and faults;
-5. evaluate the Parent's own state-complete condition and lifecycle transition;
-6. publish Parent status and Intents.
+1. evaluate the Parent's current Request, transition guards, and relevant
+   Observations;
+2. accept a valid command and enter or continue the Parent's applicable acting
+   transition state;
+3. derive and publish commands or Requests for participating Subunits;
+4. scan direct Subunits once in explicit registration order;
+5. aggregate Subunit status, Conditions, and faults;
+6. evaluate the Parent's own state-complete condition and transition to the
+   target wait state when complete;
+7. publish Parent status and Intents.
 
 An implementation MAY use bounded internal microsteps, but their ordering and
 termination limit MUST be deterministic. Internal microsteps MUST NOT cause a
@@ -108,6 +112,10 @@ be scanned as a top-level Unit.
 A Parent propagates a lifecycle request; a Subunit independently determines its
 state. Parent and Subunit states therefore MAY differ while a coordinated
 transition is in progress.
+
+A pending Parent Request MAY remain blocked in the Parent's current state while
+a guard is false. The Parent MUST NOT issue child commands until the applicable
+guard and command-source rules permit the coordinated transition to begin.
 
 The Parent MUST preserve its current acting state until its own state-complete
 condition is satisfied. It MUST NOT claim completion solely because requests
@@ -155,4 +163,3 @@ verify:
 - degraded or partial operation when declared;
 - independent Parent and Subunit diagnostics;
 - distinction between peer data flow and lifecycle ownership.
-

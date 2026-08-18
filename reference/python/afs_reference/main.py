@@ -17,7 +17,7 @@ def build_application() -> tuple[Application, AFS_TEMPLATE_01_UNIT]:
 
 def main() -> int:
     app, unit = build_application()
-    app.run(scans=5)
+    app.run(scans=10)
 
     status = unit.status
     print(

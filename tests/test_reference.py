@@ -9,8 +9,10 @@ from pathlib import Path
 
 from reference.python.afs_reference.application import Application
 from reference.python.afs_reference.main import build_application
+from reference.python.afs_reference.packml import PackMLLifecycle, REQUIRED_STATES
 from reference.python.afs_reference.state_machine import State
 from reference.python.afs_reference.unit import AFS_TEMPLATE_01_UNIT
+from reference.python.afs_reference.unit_runtime import PackMLUnit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -50,7 +52,7 @@ class ReferenceImplementationTests(unittest.TestCase):
     def test_application_runs_registered_unit(self) -> None:
         app, unit = build_application()
 
-        app.run(scans=5)
+        app.run(scans=10)
 
         self.assertEqual(unit.status.state, State.COMPLETE)
         self.assertEqual(unit.status.value, 3)
@@ -59,9 +61,15 @@ class ReferenceImplementationTests(unittest.TestCase):
     def test_application_preserves_explicit_registration_order(self) -> None:
         calls: list[str] = []
 
-        class RecordingUnit:
+        class RecordingUnit(PackMLUnit):
             def __init__(self, name: str) -> None:
-                self.name = name
+                super().__init__(
+                    name=name,
+                    lifecycle=PackMLLifecycle(
+                        mode="AUTOMATIC",
+                        supported_states=REQUIRED_STATES,
+                    ),
+                )
 
             def scan(self) -> None:
                 calls.append(self.name)
@@ -78,10 +86,22 @@ class ReferenceImplementationTests(unittest.TestCase):
         unit = AFS_TEMPLATE_01_UNIT(target=2)
 
         unit.scan()
+        self.assertEqual(unit.status.state, State.RESETTING)
+
+        unit.scan()
+        self.assertEqual(unit.status.state, State.IDLE)
+
+        unit.scan()
+        self.assertEqual(unit.status.state, State.STARTING)
+
+        unit.scan()
         self.assertEqual(unit.status.state, State.EXECUTE)
 
         unit.scan()
         self.assertEqual(unit.status.state, State.EXECUTE)
+
+        unit.scan()
+        self.assertEqual(unit.status.state, State.COMPLETING)
 
         unit.scan()
         self.assertEqual(unit.status.state, State.COMPLETE)

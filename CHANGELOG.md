@@ -8,6 +8,12 @@ All notable changes to AFS will be documented in this file.
 
 - Validation of an explicitly supplied repository path.
 - Direct unit tests for individual validation rules.
+- Hardened declarative `PackMLMachine` reference runtime with pure component
+  aggregation and bounded internal microsteps.
+- Canonical attributable alarms with deterministic ordering and explicit
+  `ABORT`, `HOLD`, and `SUSPEND` responses.
+- Fail-closed transient-state timeout handling through `SYSTEM_FAILURE`.
+- Strict timestamped snapshot validation and deterministic acknowledged recovery.
 
 ### Changed
 

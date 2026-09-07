@@ -28,6 +28,36 @@ The generic runtime demonstrates:
 - deterministic Parent/Subunit command propagation and aggregation;
 - independent peer Units that exchange data without lifecycle ownership.
 
+The package also exports the hardened declarative `PackMLMachine` runtime. It
+adds production-tested component aggregation, canonical attributable alarms,
+bounded internal microsteps, `SC` transition timeouts, the fail-closed
+`SYSTEM_FAILURE` extension, and strict timestamped snapshot restoration. New
+effectful integrations should prefer this runtime and commit its returned
+snapshot before applying external actions.
+
+The command-based `PackMLLifecycle` remains available for the 0.1 examples and
+composition adapter. A Unit must choose one authoritative runtime, never both.
+
+Minimal declarative use:
+
+```python
+from reference.python.afs_reference import PackMLMachine, component_result
+
+machine = PackMLMachine(unit_id="example", now=0)
+machine.register_component("work", lambda context: component_result(
+    SC=context.input.get("complete", False),
+    outputs={"requested": context.machine.state.value},
+))
+result = machine.scan(
+    operation_requested=True,
+    input={"complete": False},
+    now=1,
+)
+
+# Persist before applying effects derived from component outputs.
+persist(result.snapshot.to_dict())
+```
+
 ## Run it
 
 From the repository root:

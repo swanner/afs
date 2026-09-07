@@ -1,9 +1,9 @@
 # AFS PackML Unit Profile 0.1
 
 - Status: Draft
-- Version: 0.1.0
-- Date: 2026-08-18
-- Decision: `ADR-0006`
+- Version: 0.1.1
+- Date: 2026-09-07
+- Decisions: `ADR-0006`, `ADR-0008`
 - Normative basis: `ISA-TR88.00.02-2022`
 
 ## 1. Scope
@@ -204,3 +204,89 @@ An implementation conforms to this profile only when automated tests verify:
 
 Claims of complete PackML conformance require independent verification against
 the complete applicable PackML specification and are outside this profile.
+
+## 14. Hardened declarative runtime
+
+An implementation MAY claim **AFS hardened PackML runtime conformance** in
+addition to the base profile. Such an implementation MUST expose one
+authoritative machine that:
+
+- accepts declarative operation and acknowledgement requests instead of public
+  transition commands;
+- evaluates one or more registered pure components against the same immutable
+  machine snapshot, observations, and scan timestamp per evaluation pass;
+- requires every component to return a boolean state-complete value (`SC`), an
+  alarm collection, and an output mapping;
+- derives aggregate `SC` by requiring every component's `SC`;
+- reconciles alarm changes before consuming component outputs or advancing state;
+- permits only the alarm responses `ABORT`, `HOLD`, and `SUSPEND`, in that
+  priority order;
+- sorts normalized alarms deterministically and retains their component source;
+- completes no more than a documented, finite number of internal microsteps;
+- prevents callers and components from assigning lifecycle state directly.
+
+The component name `PackMLMachine` is reserved for framework-generated alarms.
+Alarm details MUST be finite, acyclic, JSON-like data so snapshots can be
+serialized and compared deterministically.
+
+### 14.1 Terminal commit boundaries
+
+`STOPPED`, `COMPLETE`, `ABORTED`, and `SYSTEM_FAILURE` are terminal commit
+boundaries. A scan MAY enter one of these states after several internal
+microsteps, but MUST return control to the Unit before following its ordinary
+outgoing transition. This makes persistence and external effects observable at
+the boundary.
+
+The acknowledged recovery of a previously persisted `SYSTEM_FAILURE` MAY pass
+through `ABORTING`, `ABORTED`, and `CLEARING` in one bounded scan when aggregate
+`SC` remains true. This is a recovery operation, not an ordinary outgoing
+terminal transition.
+
+### 14.2 Transition timeout and `SYSTEM_FAILURE`
+
+`SYSTEM_FAILURE` is an AFS fail-closed extension around the PackML lifecycle; it
+is not represented as a PackML state from ISA-TR88.00.02.
+
+When aggregate `SC` remains false in a supported transient state for at least a
+configured positive timeout, the machine MUST:
+
+1. record the transient state as `failedFromState`;
+2. preserve an already latched abort reason, or use `SC_TIMEOUT` otherwise;
+3. add exactly one normalized framework alarm with source `PackMLMachine`, code
+   `SC_TIMEOUT`, response `null`, and details containing only the failed state and
+   positive timeout;
+4. enter `SYSTEM_FAILURE` and return at that terminal boundary.
+
+Recovery MUST require aggregate `SC` and explicit acknowledgement. It MUST pass
+through the abort path before clearing to `STOPPED`. `SYSTEM_FAILURE` MUST NOT be
+silently treated as `ABORTED`, and its alarm MUST not be attributed to an
+application component.
+
+### 14.3 Snapshot contract
+
+A hardened snapshot MUST contain:
+
+- Unit identity or `null`;
+- the current lifecycle state;
+- a finite, non-negative state-entry timestamp;
+- fully normalized alarms with source, code, response, and JSON-like details;
+- an abort reason or `null`;
+- a PackML `failedFromState` or `null`.
+
+Restoration MUST receive an explicit, finite, non-negative current timestamp and
+MUST reject a state-entry timestamp in the future. It MUST validate the complete
+snapshot before any Unit scan or external effect.
+
+A `SYSTEM_FAILURE` snapshot is valid only when `failedFromState` is a transient
+state capable of timing out, its abort reason is valid, and exactly one canonical
+framework timeout alarm matches that state and a positive timeout. Unknown,
+malformed, contradictory, or semantically impossible persistence MUST fail
+closed. Current observations MUST NOT be used to repair or reinterpret corrupt
+persisted identity or failure provenance.
+
+### 14.4 Additional conformance evidence
+
+A hardened runtime claim requires automated tests for component contracts,
+aggregate `SC`, stable alarm ordering, alarm reconciliation, response priority,
+bounded microsteps, terminal boundaries, timeout entry, acknowledged recovery,
+future timestamps, malformed alarms, and impossible `SYSTEM_FAILURE` snapshots.

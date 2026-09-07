@@ -61,7 +61,10 @@ python -m reference.python.afs_reference
 ```
 
 It demonstrates explicit Application → Unit → State Machine integration and a
-minimal Search & Replace template surface. See `reference/README.md`.
+minimal Search & Replace template surface. The reference package also includes
+the hardened declarative PackML runtime derived from production use: pure
+component aggregation, canonical alarms, `SYSTEM_FAILURE`, bounded microsteps,
+and strict snapshot restoration. See `reference/README.md`.
 
 ## Development
 

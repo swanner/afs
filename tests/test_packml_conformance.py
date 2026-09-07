@@ -60,6 +60,13 @@ class PackMLConformanceTests(unittest.TestCase):
                 supported_states={PackMLState.STOPPED},
             )
 
+    def test_system_failure_requires_declarative_machine(self) -> None:
+        with self.assertRaisesRegex(ValueError, "declarative PackMLMachine"):
+            PackMLLifecycle(
+                mode="AUTOMATIC",
+                supported_states=REQUIRED_STATES | {PackMLState.SYSTEM_FAILURE},
+            )
+
     def test_optional_acting_state_requires_its_wait_state(self) -> None:
         with self.assertRaisesRegex(ValueError, "SUSPENDING requires SUSPENDED"):
             self.lifecycle(PackMLState.SUSPENDING)

@@ -23,6 +23,7 @@ class PackMLState(str, Enum):
     RESETTING = "RESETTING"
     COMPLETING = "COMPLETING"
     COMPLETE = "COMPLETE"
+    SYSTEM_FAILURE = "SYSTEM_FAILURE"
 
 
 class PackMLCommand(str, Enum):
@@ -158,6 +159,10 @@ class PackMLLifecycle:
         restorable_states: Iterable[PackMLState] | None = None,
     ) -> None:
         states = frozenset(supported_states)
+        if PackMLState.SYSTEM_FAILURE in states:
+            raise ValueError(
+                "SYSTEM_FAILURE requires the declarative PackMLMachine runtime"
+            )
         missing = REQUIRED_STATES - states
         if missing:
             names = ", ".join(sorted(state.value for state in missing))

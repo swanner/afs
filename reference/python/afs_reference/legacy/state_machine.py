@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .packml import (
+from .packml_lifecycle import (
     PackMLCommand,
     PackMLLifecycle,
     PackMLState,

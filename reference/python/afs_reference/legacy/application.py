@@ -1,5 +1,3 @@
-"""Explicit Application orchestration for the current reference Unit."""
-
 from __future__ import annotations
 
 from collections.abc import Iterable
@@ -8,7 +6,7 @@ from .unit_runtime import PackMLUnit
 
 
 class Application:
-    """Own and scan declarative PackML Units in registration order."""
+    """Legacy Application used by command-based Unit composition examples."""
 
     def __init__(self) -> None:
         self._units: list[PackMLUnit] = []
@@ -18,6 +16,7 @@ class Application:
         return tuple(self._units)
 
     def add_unit(self, unit: PackMLUnit) -> None:
+        """Register one Unit explicitly; AFS performs no automatic discovery."""
         if not isinstance(unit, PackMLUnit):
             raise TypeError("Application accepts PackMLUnit instances only")
         if unit in self._units:
@@ -28,6 +27,7 @@ class Application:
     def run(self, scans: int = 1) -> None:
         if scans < 1:
             raise ValueError("scans must be at least 1")
+
         for _ in range(scans):
             for unit in self._units:
                 unit.scan()

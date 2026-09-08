@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Mapping
 
-from .packml import (
+from .packml_lifecycle import (
     PackMLCommand,
     PackMLLifecycle,
     PackMLState,

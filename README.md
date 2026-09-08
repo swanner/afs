@@ -54,17 +54,22 @@ afs adr new "Decision title"
 
 ## Reference implementation
 
-Run the executable AFS reference architecture:
+Run the current executable AFS reference implementation:
 
 ```bash
 python -m reference.python.afs_reference
 ```
 
-It demonstrates explicit Application → Unit → State Machine integration and a
-minimal Search & Replace template surface. The reference package also includes
-the hardened declarative PackML runtime derived from production use: pure
-component aggregation, canonical alarms, `SYSTEM_FAILURE`, bounded microsteps,
-and strict snapshot restoration. See `reference/README.md`.
+It demonstrates the declarative, component-based `PackMLMachine` as the
+preferred current lifecycle runtime for new implementations. An Application
+scans a Unit, which supplies immutable observations, and small pure components
+return `SC`, alarms, and outputs. The machine alone owns transitions through the
+explicit `_apply_state` switch.
+
+The command-based `PackMLLifecycle` is retained under
+`reference/python/afs_reference/legacy/` as the 0.1 compatibility adapter for
+the published 0.1 examples, including Parent/Subunit composition. See
+`reference/README.md` for the module map and safety contract.
 
 ## Development
 

@@ -20,6 +20,11 @@ All notable changes to AFS will be documented in this file.
 - Validator logic is separated from terminal output.
 - Tests no longer change the process working directory.
 - Expected validation failures are no longer printed during the test suite.
+- The declarative `PackMLMachine` is the current executable reference and is
+  split into explicit state, model, validation, and scan-orchestration modules.
+- The command-based `PackMLLifecycle` is retained under `legacy/` as the 0.1
+  compatibility adapter for the published 0.1 examples. It currently hosts the
+  executable Parent/Subunit composition reference.
 
 ## 0.1.0
 

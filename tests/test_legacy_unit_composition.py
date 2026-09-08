@@ -2,19 +2,19 @@ from __future__ import annotations
 
 import unittest
 
-from reference.python.afs_reference.application import Application
-from reference.python.afs_reference.composition import (
+from reference.python.afs_reference.legacy.application import Application
+from reference.python.afs_reference.legacy.composition import (
     AggregationPolicy,
     CompositeUnit,
     FaultAction,
 )
-from reference.python.afs_reference.packml import (
+from reference.python.afs_reference.legacy.packml_lifecycle import (
     PackMLCommand,
     PackMLLifecycle,
     PackMLState,
     REQUIRED_STATES,
 )
-from reference.python.afs_reference.unit_runtime import PackMLUnit
+from reference.python.afs_reference.legacy.unit_runtime import PackMLUnit
 
 
 TRANSITION_STATES = {
@@ -45,7 +45,7 @@ class ControlledUnit(PackMLUnit):
         self.lifecycle.complete_scan(state_complete=self.transition_ready)
 
 
-class UnitCompositionTests(unittest.TestCase):
+class LegacyUnitCompositionTests(unittest.TestCase):
     def test_application_accepts_packml_units_only(self) -> None:
         app = Application()
 

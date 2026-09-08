@@ -6,8 +6,12 @@ from .unit import AFS_TEMPLATE_01_UNIT
 
 def build_application() -> tuple[Application, AFS_TEMPLATE_01_UNIT]:
     app = Application()
+
+    # AFS PATTERN: Integration is explicit and visible. Search & Replace of
+    # AFS_TEMPLATE_01_UNIT also finds this registration point.
     unit = AFS_TEMPLATE_01_UNIT(target=3)
     app.add_unit(unit)
+
     return app, unit
 
 

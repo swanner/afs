@@ -3,14 +3,14 @@ from __future__ import annotations
 import unittest
 from enum import Enum
 
-from reference.python.afs_reference.composition import CompositeUnit
-from reference.python.afs_reference.packml import (
+from reference.python.afs_reference.legacy.composition import CompositeUnit
+from reference.python.afs_reference.legacy.packml_lifecycle import (
     PackMLCommand,
     PackMLLifecycle,
     PackMLState,
     REQUIRED_STATES,
 )
-from reference.python.afs_reference.unit_runtime import PackMLUnit
+from reference.python.afs_reference.legacy.unit_runtime import PackMLUnit
 
 
 BASE_TRANSITIONS = {
@@ -69,7 +69,7 @@ def start(lifecycle: PackMLLifecycle) -> None:
     complete(lifecycle)
 
 
-class ReferenceScenarioTests(unittest.TestCase):
+class LegacyReferenceScenarioTests(unittest.TestCase):
     def test_solar_domain_state_does_not_replace_packml_state(self) -> None:
         lifecycle = PackMLLifecycle(
             mode="AUTOMATIC",
@@ -162,4 +162,3 @@ class ReferenceScenarioTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

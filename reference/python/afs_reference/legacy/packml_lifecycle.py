@@ -4,26 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Iterable
 
-
-class PackMLState(str, Enum):
-    CLEARING = "CLEARING"
-    STOPPED = "STOPPED"
-    STARTING = "STARTING"
-    IDLE = "IDLE"
-    SUSPENDED = "SUSPENDED"
-    EXECUTE = "EXECUTE"
-    STOPPING = "STOPPING"
-    ABORTING = "ABORTING"
-    ABORTED = "ABORTED"
-    HOLDING = "HOLDING"
-    HELD = "HELD"
-    UNHOLDING = "UNHOLDING"
-    SUSPENDING = "SUSPENDING"
-    UNSUSPENDING = "UNSUSPENDING"
-    RESETTING = "RESETTING"
-    COMPLETING = "COMPLETING"
-    COMPLETE = "COMPLETE"
-    SYSTEM_FAILURE = "SYSTEM_FAILURE"
+from ..packml_states import PackMLState
 
 
 class PackMLCommand(str, Enum):
@@ -148,7 +129,7 @@ _FIXED_TRANSITIONS = {
 
 
 class PackMLLifecycle:
-    """Implementation-neutral AFS PackML Unit Profile 0.1 runtime."""
+    """Legacy command adapter for the AFS PackML Unit Profile 0.1 examples."""
 
     def __init__(
         self,

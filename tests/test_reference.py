@@ -7,11 +7,18 @@ import sys
 import unittest
 from pathlib import Path
 
+from reference.python import afs_reference
 from reference.python.afs_reference.application import Application
 from reference.python.afs_reference.main import build_application
-from reference.python.afs_reference.packml import PackMLLifecycle, REQUIRED_STATES
-from reference.python.afs_reference.state_machine import State
-from reference.python.afs_reference.unit import AFS_TEMPLATE_01_UNIT
+from reference.python.afs_reference.packml_machine import (
+    PackMLMachine,
+    PackMLState,
+    component_result,
+)
+from reference.python.afs_reference.unit import (
+    AFS_TEMPLATE_01_UNIT,
+    AFS_TEMPLATE_02_COMPONENT,
+)
 from reference.python.afs_reference.unit_runtime import PackMLUnit
 
 
@@ -54,22 +61,23 @@ class ReferenceImplementationTests(unittest.TestCase):
 
         app.run(scans=10)
 
-        self.assertEqual(unit.status.state, State.COMPLETE)
+        self.assertEqual(unit.status.state, PackMLState.COMPLETE)
         self.assertEqual(unit.status.value, 3)
         self.assertIsNone(unit.status.alarm)
+
+    def test_public_package_exposes_only_the_current_runtime(self) -> None:
+        self.assertIs(afs_reference.PackMLMachine, PackMLMachine)
+        self.assertFalse(hasattr(afs_reference, "PackMLLifecycle"))
+        self.assertFalse(hasattr(afs_reference, "CompositeUnit"))
 
     def test_application_preserves_explicit_registration_order(self) -> None:
         calls: list[str] = []
 
         class RecordingUnit(PackMLUnit):
             def __init__(self, name: str) -> None:
-                super().__init__(
-                    name=name,
-                    lifecycle=PackMLLifecycle(
-                        mode="AUTOMATIC",
-                        supported_states=REQUIRED_STATES,
-                    ),
-                )
+                machine = PackMLMachine(unit_id=name, now=0)
+                machine.register_component("ready", lambda _context: component_result())
+                super().__init__(name=name, machine=machine)
 
             def scan(self) -> None:
                 calls.append(self.name)
@@ -82,29 +90,41 @@ class ReferenceImplementationTests(unittest.TestCase):
 
         self.assertEqual(calls, ["first", "second", "first", "second"])
 
-    def test_unit_owns_state_machine_lifecycle(self) -> None:
+    def test_unit_owns_declarative_packml_machine(self) -> None:
         unit = AFS_TEMPLATE_01_UNIT(target=2)
 
         unit.scan()
-        self.assertEqual(unit.status.state, State.RESETTING)
+        self.assertEqual(unit.status.state, PackMLState.EXECUTE)
+        self.assertEqual(unit.status.value, 0)
 
         unit.scan()
-        self.assertEqual(unit.status.state, State.IDLE)
+        self.assertEqual(unit.status.state, PackMLState.EXECUTE)
+        self.assertEqual(unit.status.value, 1)
 
         unit.scan()
-        self.assertEqual(unit.status.state, State.STARTING)
+        self.assertEqual(unit.status.state, PackMLState.COMPLETE)
+        self.assertEqual(unit.status.value, 2)
 
-        unit.scan()
-        self.assertEqual(unit.status.state, State.EXECUTE)
+    def test_template_component_is_a_repeatable_pure_function(self) -> None:
+        machine = PackMLMachine(initial_state=PackMLState.EXECUTE, now=0)
+        machine.register_component(
+            "template",
+            lambda context: AFS_TEMPLATE_02_COMPONENT(context, target=2),
+        )
 
-        unit.scan()
-        self.assertEqual(unit.status.state, State.EXECUTE)
+        first = machine.scan(
+            operation_requested=True,
+            input={"value": 1},
+            now=1,
+        )
+        second = machine.scan(
+            operation_requested=True,
+            input={"value": 1},
+            now=1,
+        )
 
-        unit.scan()
-        self.assertEqual(unit.status.state, State.COMPLETING)
-
-        unit.scan()
-        self.assertEqual(unit.status.state, State.COMPLETE)
+        self.assertEqual(first.snapshot, second.snapshot)
+        self.assertEqual(first.component_results, second.component_results)
 
     def test_reference_application_is_executable(self) -> None:
         result = subprocess.run(
@@ -128,7 +148,7 @@ class ReferenceImplementationTests(unittest.TestCase):
             identifiers,
             {
                 "AFS_TEMPLATE_01_UNIT",
-                "AFS_TEMPLATE_02_STATE_MACHINE",
+                "AFS_TEMPLATE_02_COMPONENT",
             },
         )
 
@@ -167,12 +187,13 @@ class ReferenceImplementationTests(unittest.TestCase):
 
     def test_template_workflow_markers_are_present(self) -> None:
         source = (REFERENCE_ROOT / "unit.py").read_text(encoding="utf-8")
+        integration = (REFERENCE_ROOT / "main.py").read_text(encoding="utf-8")
 
         self.assertIn("AFS TEMPLATE WORKFLOW", source)
         self.assertIn("AFS REQUIRED ADAPTATION", source)
         self.assertIn("AFS OPTIONAL", source)
         self.assertIn("AFS PATTERN", source)
-        self.assertIn("app.add_unit(AFS_TEMPLATE_01_UNIT(...))", source)
+        self.assertIn("app.add_unit(unit)", integration)
 
 
 if __name__ == "__main__":

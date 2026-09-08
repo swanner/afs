@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from reference.python.afs_reference.packml import (
+from reference.python.afs_reference.legacy.packml_lifecycle import (
     LifecycleCondition,
     PackMLCommand,
     PackMLLifecycle,
@@ -20,7 +20,7 @@ TRANSITION_STATES = {
 }
 
 
-class PackMLConformanceTests(unittest.TestCase):
+class LegacyPackMLConformanceTests(unittest.TestCase):
     def lifecycle(self, *extra: PackMLState) -> PackMLLifecycle:
         return PackMLLifecycle(
             mode="AUTOMATIC",

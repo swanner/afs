@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import ast
+import inspect
+import textwrap
 import unittest
 
-from reference.python.afs_reference.packml import PackMLState
 from reference.python.afs_reference.packml_machine import (
     AlarmResponse,
     ComponentAlarm,
@@ -13,6 +15,7 @@ from reference.python.afs_reference.packml_machine import (
     legal_transition,
     validate_snapshot,
 )
+from reference.python.afs_reference.packml_states import PackMLState
 
 
 def ready(_context):
@@ -357,6 +360,22 @@ class PackMLMachineTests(unittest.TestCase):
                 )
                 result = machine.scan(operation_requested=True, now=1)
                 self.assertIsInstance(result.snapshot.state, PackMLState)
+
+    def test_central_state_switch_explicitly_handles_every_state(self) -> None:
+        tree = ast.parse(textwrap.dedent(inspect.getsource(PackMLMachine._apply_state)))
+        handled = {
+            comparator.attr
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Compare)
+            and isinstance(node.left, ast.Attribute)
+            and node.left.attr == "_state"
+            for comparator in node.comparators
+            if isinstance(comparator, ast.Attribute)
+            and isinstance(comparator.value, ast.Name)
+            and comparator.value.id == "PackMLState"
+        }
+
+        self.assertEqual(handled, {state.name for state in PackMLState})
 
     def test_reserved_component_name_and_duplicate_are_rejected(self) -> None:
         machine = PackMLMachine(now=0)

@@ -1,69 +1,62 @@
+"""Current component-based Unit example."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import partial
 
-from .packml import LifecycleStatus
-from .state_machine import AFS_TEMPLATE_02_STATE_MACHINE, State
+from .packml_machine import (
+    ComponentAlarm,
+    ComponentResult,
+    PackMLContext,
+    PackMLMachine,
+    PackMLSnapshot,
+    PackMLState,
+    component_result,
+)
 from .unit_runtime import PackMLUnit
 
 
-# =============================================================================
-# AFS TEMPLATE WORKFLOW
-# =============================================================================
-#
-# This file is part of the executable AFS Reference Implementation.
-# To create application code from it:
-#
-# 1. Copy the complete reference implementation.
-#
-# 2. Perform project-wide Search & Replace for every identifier beginning with
-#    "AFS_TEMPLATE_". The prefix is deliberately unique, so all required name
-#    changes can be found safely.
-#
-#    Example:
-#
-#        AFS_TEMPLATE_01_UNIT
-#            -> ChargingUnit
-#
-#        AFS_TEMPLATE_02_STATE_MACHINE
-#            -> ChargingStateMachine
-#
-#    This also updates integration code such as:
-#
-#        app.add_unit(AFS_TEMPLATE_01_UNIT(...))
-#
-#    Do not introduce another AFS_TEMPLATE_* identifier unless the adaptation
-#    cannot reasonably be eliminated through a simpler architecture.
-#
-# 3. Search project-wide for "AFS REQUIRED ADAPTATION". Review and adapt every
-#    occurrence. These markers identify application-specific behavior that a
-#    name replacement cannot complete.
-#
-#    Example:
-#
-#        # AFS REQUIRED ADAPTATION: Replace this demonstration input with the
-#        # real application input owned by this Unit.
-#        self.value += 1
-#
-# 4. Search project-wide for "AFS OPTIONAL". Keep useful examples and delete
-#    optional behavior that the application does not need.
-#
-# 5. Keep and follow "AFS PATTERN" comments. They explain architecture rules,
-#    not demonstration details.
-#
-# 6. Run the application and its tests. No generator, decorator, reflection,
-#    automatic registration, or hidden discovery is required.
-#
-# =============================================================================
+# AFS TEMPLATE WORKFLOW: replace both AFS_TEMPLATE_* identifiers, then adapt
+# every AFS REQUIRED ADAPTATION marker while retaining the AFS PATTERN rules.
 
 
 @dataclass(frozen=True)
 class UnitStatus:
     name: str
-    state: State
-    lifecycle: LifecycleStatus
+    state: PackMLState
+    snapshot: PackMLSnapshot
     value: int
     alarm: str | None
+
+
+# =============================================================================
+# AFS TEMPLATE 02
+#
+# Template purpose:
+#     Pure business component evaluated by PackMLMachine.
+#
+# Example replacement:
+#     charging_component
+# =============================================================================
+def AFS_TEMPLATE_02_COMPONENT(
+    context: PackMLContext, *, target: int
+) -> ComponentResult:
+    """Return lifecycle evidence without changing Unit or machine state."""
+    value = context.input.get("value")
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError("value must be an integer")
+    # AFS OPTIONAL: retain only alarms meaningful to the adapted Unit.
+    alarms = (
+        (ComponentAlarm("TARGET_EXCEEDED", None, {"target": target, "value": value}),)
+        if value > target
+        else ()
+    )
+    return component_result(
+        SC=context.machine.state is not PackMLState.EXECUTE or value >= target,
+        alarms=alarms,
+        outputs={"value": value},
+    )
 
 
 # =============================================================================
@@ -74,51 +67,49 @@ class UnitStatus:
 #
 # Example replacement:
 #     ChargingUnit
-#
-# This comment intentionally remains after customization. It documents the
-# architectural role and origin of the class in the AFS Reference Implementation.
 # =============================================================================
 class AFS_TEMPLATE_01_UNIT(PackMLUnit):
-    """Reference Unit demonstrating ownership, parameters, state and alarms."""
+    """Reference Unit that owns the current declarative PackMLMachine."""
 
     def __init__(self, target: int = 3) -> None:
+        if target < 1:
+            raise ValueError("target must be at least 1")
         self._value = 0
-        self._start_requested = True
-        self._alarm: str | None = None
-
-        # AFS PATTERN: A Unit owns its State Machine. The Application knows only
-        # the Unit and never registers or drives the State Machine directly.
-        self._state_machine = AFS_TEMPLATE_02_STATE_MACHINE(target=target)
-        super().__init__(
-            name="template-unit",
-            lifecycle=self._state_machine.lifecycle,
+        self._scan_now = 0
+        machine = PackMLMachine(unit_id="template-unit", now=0)
+        machine.register_component(
+            "target",
+            partial(AFS_TEMPLATE_02_COMPONENT, target=target),
         )
+        super().__init__(name="template-unit", machine=machine)
 
     @property
     def status(self) -> UnitStatus:
+        snapshot = self.snapshot
+        alarm = (
+            "target exceeded"
+            if any(item.code == "TARGET_EXCEEDED" for item in snapshot.alarms)
+            else None
+        )
         return UnitStatus(
             name=self.name,
-            state=self._state_machine.state,
-            lifecycle=self.lifecycle.status,
+            state=snapshot.state,
+            snapshot=snapshot,
             value=self._value,
-            alarm=self._alarm,
+            alarm=alarm,
         )
 
     def scan(self) -> None:
-        # AFS REQUIRED ADAPTATION: Replace this deterministic demonstration
-        # input with the real input evaluation owned by this Unit.
-        if self._state_machine.state is State.EXECUTE:
+        # AFS REQUIRED ADAPTATION: Replace this deterministic observation with
+        # real input acquisition owned by the Unit.
+        if self.machine.state is PackMLState.EXECUTE:
             self._value += 1
+        self._scan_now += 1
 
-        state = self._state_machine.evaluate(
-            value=self._value,
-            start_requested=self._start_requested,
+        # AFS PATTERN: persist result.snapshot before applying external effects
+        # derived from component outputs.
+        self.machine.scan(
+            operation_requested=True,
+            input={"value": self._value},
+            now=self._scan_now,
         )
-
-        # AFS OPTIONAL: This alarm demonstrates that alarm creation remains in
-        # the Unit that understands the underlying condition. Delete it when
-        # the application does not need an equivalent alarm.
-        self._alarm = "target exceeded" if self._value > self._state_machine.target else None
-
-        if state is State.COMPLETE:
-            self._start_requested = False

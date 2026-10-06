@@ -6,6 +6,9 @@ All notable changes to AFS will be documented in this file.
 
 ### Added
 
+- Implementation-neutral authority and effect conformance tests for canonical
+  action projection, stale-context rejection, delayed confirmation, fail-safe
+  persistence failure, retry safety, and client reconciliation.
 - Authority and effect contracts for canonical action projections, current-state
   revalidation, asynchronous physical confirmation, stricter declared fail-safe
   policies, and ambiguous-outcome reconciliation.

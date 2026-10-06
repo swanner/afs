@@ -16,8 +16,8 @@
 - Maintain production-derived authority and safety contracts for canonical
   action projection, effect confirmation, fail-safe verification, and client
   reconciliation
-- Add implementation-neutral conformance cases for authority revisions,
-  delayed physical confirmation, and ambiguous action outcomes
+- Implementation-neutral conformance cases for authority revisions, delayed
+  physical confirmation, and ambiguous action outcomes (completed)
 
 ## Phase 3 — Publishing
 

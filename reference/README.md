@@ -25,6 +25,34 @@ The machine aggregates `SC`, canonicalizes attributable alarms, preserves the
 timeouts, and validates complete persisted snapshots before scanning. Callers
 that apply effects should atomically persist `result.snapshot` first.
 
+## Authority and effect boundary
+
+`PackMLMachine` remains the sole lifecycle authority. An integration may publish
+an authoritative envelope around its snapshot with action availability and a
+monotonic revision. That projection must be derived from the same current
+context used to accept an action, and action submission must be revalidated.
+Clients and adapters consume the projection; they do not reproduce transition
+policy.
+
+A component output that requests an effect is not confirmation of a physical
+outcome. An executor applies that request outside the machine, and a later
+observation returns as scan input. When completion requires that observation, a
+component keeps `SC` false and the applicable acting state may span multiple
+scans. There is no general same-scan readback requirement.
+
+A declared fail-safe effect may require immediate dispatch and positive
+verification under a stricter application policy. The observation remains
+evidence rather than PackML state, and the machine still decides lifecycle
+transitions from component `SC` and alarms. Transport failures and ambiguous
+action results are likewise reconciled outside the machine by obtaining a newer
+authoritative snapshot; clients must not blindly retry an action that may have
+executed.
+
+These integration rules are normative in
+`specification/semantics/AFS-AUTHORITY-EFFECT-CONTRACTS-0.1.md`. The reference
+runtime intentionally adds no networking, presentation, executor, or retry API
+for them.
+
 ## Current module map
 
 - `packml_states.py` — `PackMLState`, explicit legal edges, and state groups;

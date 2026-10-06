@@ -6,6 +6,11 @@ All notable changes to AFS will be documented in this file.
 
 ### Added
 
+- Authority and effect contracts for canonical action projections, current-state
+  revalidation, asynchronous physical confirmation, stricter declared fail-safe
+  policies, and ambiguous-outcome reconciliation.
+- ADR-0009 documenting the single-authority boundary for clients, effect
+  executors, observations, and transport concerns.
 - Validation of an explicitly supplied repository path.
 - Direct unit tests for individual validation rules.
 - Hardened declarative `PackMLMachine` reference runtime with pure component
@@ -17,6 +22,9 @@ All notable changes to AFS will be documented in this file.
 
 ### Changed
 
+- The reference architecture documentation now distinguishes lifecycle
+  authority, effect requests, physical observations, and client projections
+  without changing `PackMLMachine` behavior.
 - Validator logic is separated from terminal output.
 - Tests no longer change the process working directory.
 - Expected validation failures are no longer printed during the test suite.
